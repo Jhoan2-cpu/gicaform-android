@@ -1,0 +1,10 @@
+<resources>
+    <string name="app_name">GICA Ingenieros</string>
+    <string name="login_title">Iniciar Sesión</string>
+    <string name="home_title">Inicio</string>
+    <string name="profile_title">Perfil</string>
+    <string name="users_title">Usuarios</string>
+    <string name="settings_title">Configuración</string>
+    <string name="welcome_message">Bienvenido a GICA Ingenieros</string>
+    <string name="logout">Cerrar Sesión</string>
+</resources>

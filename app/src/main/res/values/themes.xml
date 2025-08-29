@@ -1,0 +1,21 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Base.Theme.Gica2025" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary_orange</item>
+        <item name="colorPrimaryDark">@color/primary_orange_dark</item>
+        <item name="colorAccent">@color/primary_blue</item>
+        <item name="android:colorBackground">@color/background_light</item>
+        <item name="android:textColor">@color/text_primary_light</item>
+        <item name="android:textColorSecondary">@color/text_secondary_light</item>
+    </style>
+
+    <style name="Theme.Gica2025" parent="Base.Theme.Gica2025" />
+    
+    <!-- Splash Screen Theme -->
+    <style name="Theme.App.SplashScreen" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/primary_orange</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_gica_logo</item>
+        <item name="windowSplashScreenAnimationDuration">1000</item>
+        <item name="postSplashScreenTheme">@style/Theme.Gica2025</item>
+    </style>
+</resources>
