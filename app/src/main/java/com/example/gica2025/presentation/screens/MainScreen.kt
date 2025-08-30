@@ -11,6 +11,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.gica2025.navigation.BottomNavItem
 import com.example.gica2025.navigation.BottomNavigationBar
+import com.example.gica2025.presentation.components.TopBar
 import com.example.gica2025.presentation.viewmodel.MainViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -27,6 +28,9 @@ fun MainScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopBar()
+        },
         bottomBar = {
             BottomNavigationBar(navController = navController)
         }

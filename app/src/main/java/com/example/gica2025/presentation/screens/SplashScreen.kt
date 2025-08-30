@@ -73,24 +73,14 @@ fun SplashScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Logo/Icon placeholder
-            Box(
+            // Logo
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "GICA Logo",
                 modifier = Modifier
                     .size(120.dp)
                     .scale(scale.value)
-                    .background(
-                        Color.White.copy(alpha = 0.15f),
-                        CircleShape
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "G",
-                    fontSize = 48.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
-            }
+            )
             
             Spacer(modifier = Modifier.height(24.dp))
             
