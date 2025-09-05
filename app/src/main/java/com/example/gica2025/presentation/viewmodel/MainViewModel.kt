@@ -4,9 +4,11 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import com.example.gica2025.data.model.User
 import com.example.gica2025.data.repository.AuthRepository
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 data class MainUiState(
     val isLoggedIn: Boolean = false,
@@ -47,7 +49,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     }
     
     fun logout() {
-        authRepository.logout()
+        viewModelScope.launch {
+            authRepository.logout()
+        }
         _uiState.value = _uiState.value.copy(
             isLoggedIn = false,
             currentUser = null,

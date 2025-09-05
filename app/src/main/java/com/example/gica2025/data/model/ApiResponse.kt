@@ -10,8 +10,6 @@ data class LoginResponse(
 
 data class LoginData(
     val token: String,
-    @SerializedName("expires_at")
-    val expiresAt: String,
     @SerializedName("expires_in")
     val expiresIn: Int,
     val user: User

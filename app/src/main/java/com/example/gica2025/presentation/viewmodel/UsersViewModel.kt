@@ -2,8 +2,7 @@ package com.example.gica2025.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.gica2025.data.model.DeleteUserRequest
-import com.example.gica2025.data.model.UserItem
+import com.example.gica2025.data.model.User
 import com.example.gica2025.data.repository.UserRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,9 +24,11 @@ class UsersViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     val usersResponse = response.body()
                     if (usersResponse?.success == true) {
+                        val users = usersResponse.data.users
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            users = usersResponse.data.users,
+                            users = users,
+                            filteredUsers = users,
                             error = null
                         )
                     } else {
@@ -51,108 +52,23 @@ class UsersViewModel : ViewModel() {
         }
     }
     
-    fun retryUser(userId: Int, token: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                retryLoading = _uiState.value.retryLoading + userId
-            )
-            
-            try {
-                val response = userRepository.retryUser(userId, token)
-                if (response.isSuccessful) {
-                    val retryResponse = response.body()
-                    if (retryResponse?.success == true) {
-                        _uiState.value = _uiState.value.copy(
-                            retryLoading = _uiState.value.retryLoading - userId,
-                            actionMessage = retryResponse.message
-                        )
-                        loadUsers(token)
-                    } else {
-                        _uiState.value = _uiState.value.copy(
-                            retryLoading = _uiState.value.retryLoading - userId,
-                            actionMessage = retryResponse?.message ?: "Error al reintentar"
-                        )
-                    }
-                } else {
-                    _uiState.value = _uiState.value.copy(
-                        retryLoading = _uiState.value.retryLoading - userId,
-                        actionMessage = "Error de red: ${response.code()}"
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    retryLoading = _uiState.value.retryLoading - userId,
-                    actionMessage = "Error: ${e.message}"
-                )
-            }
-        }
-    }
-    
-    fun deleteUser(user: UserItem, token: String) {
-        viewModelScope.launch {
-            // Si tiene registro externo, usar ese ID; si no, usar wp_user_id
-            val userIdForEndpoint = user.external_registration?.id ?: user.wp_user_id
-            
-            _uiState.value = _uiState.value.copy(
-                deleteLoading = _uiState.value.deleteLoading + user.wp_user_id
-            )
-            
-            try {
-                val deleteRequest = DeleteUserRequest(
-                    user_id = userIdForEndpoint,
-                    delete_wp_user = true,
-                    wp_user_id = user.wp_user_id
-                )
-                
-                val response = userRepository.deleteUser(userIdForEndpoint, deleteRequest, token)
-                if (response.isSuccessful) {
-                    val deleteResponse = response.body()
-                    if (deleteResponse?.success == true) {
-                        _uiState.value = _uiState.value.copy(
-                            deleteLoading = _uiState.value.deleteLoading - user.wp_user_id,
-                            actionMessage = deleteResponse.message
-                        )
-                        loadUsers(token)
-                    } else {
-                        _uiState.value = _uiState.value.copy(
-                            deleteLoading = _uiState.value.deleteLoading - user.wp_user_id,
-                            actionMessage = deleteResponse?.message ?: "Error al eliminar"
-                        )
-                    }
-                } else {
-                    val errorBody = response.errorBody()?.string()
-                    _uiState.value = _uiState.value.copy(
-                        deleteLoading = _uiState.value.deleteLoading - user.wp_user_id,
-                        actionMessage = "Error ${response.code()}: ${errorBody ?: response.message()}"
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    deleteLoading = _uiState.value.deleteLoading - user.wp_user_id,
-                    actionMessage = "Error: ${e.message}"
-                )
-            }
-        }
-    }
-    
-    fun retryAllUsers(token: String) {
+    fun getUserById(userId: Int, token: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             
             try {
-                val response = userRepository.retryAllUsers(token)
+                val response = userRepository.getUserById(userId, token)
                 if (response.isSuccessful) {
-                    val retryResponse = response.body()
-                    if (retryResponse?.success == true) {
+                    val userResponse = response.body()
+                    if (userResponse?.success == true) {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            actionMessage = retryResponse.message
+                            actionMessage = "Usuario obtenido correctamente"
                         )
-                        loadUsers(token)
                     } else {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
-                            actionMessage = retryResponse?.message ?: "Error al reintentar todos"
+                            actionMessage = userResponse?.message ?: "Error al obtener usuario"
                         )
                     }
                 } else {
@@ -170,16 +86,154 @@ class UsersViewModel : ViewModel() {
         }
     }
     
+    fun deleteUser(user: User, token: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                deleteLoading = _uiState.value.deleteLoading + user.id
+            )
+            
+            try {
+                val response = userRepository.deleteUser(user.id, token)
+                if (response.isSuccessful) {
+                    val deleteResponse = response.body()
+                    if (deleteResponse?.success == true) {
+                        _uiState.value = _uiState.value.copy(
+                            deleteLoading = _uiState.value.deleteLoading - user.id,
+                            actionMessage = deleteResponse?.message ?: "Usuario eliminado exitosamente"
+                        )
+                        loadUsers(token)
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            deleteLoading = _uiState.value.deleteLoading - user.id,
+                            actionMessage = deleteResponse?.message ?: "Usuario eliminado exitosamente"
+                        )
+                    }
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    _uiState.value = _uiState.value.copy(
+                        deleteLoading = _uiState.value.deleteLoading - user.id,
+                        actionMessage = "Error ${response.code()}: ${errorBody ?: response.message()}"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    deleteLoading = _uiState.value.deleteLoading - user.id,
+                    actionMessage = "Error: ${e.message}"
+                )
+            }
+        }
+    }
+    
+    
+    fun retryAllUsers(token: String) {
+        loadUsers(token)
+    }
+    
+    fun retryUser(userId: Int, token: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                retryLoading = _uiState.value.retryLoading + userId
+            )
+            
+            try {
+                // Simulamos la llamada al endpoint getUserById
+                // Por ahora solo mostramos un mensaje informativo
+                kotlinx.coroutines.delay(1000)
+                _uiState.value = _uiState.value.copy(
+                    retryLoading = _uiState.value.retryLoading - userId,
+                    actionMessage = "Ver perfil completo - Funcionalidad próximamente disponible"
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    retryLoading = _uiState.value.retryLoading - userId,
+                    actionMessage = "Error al cargar perfil: ${e.message}"
+                )
+            }
+        }
+    }
+    
     fun clearActionMessage() {
         _uiState.value = _uiState.value.copy(actionMessage = null)
+    }
+    
+    fun updateSearchQuery(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
+        filterAndSortUsers()
+    }
+    
+    fun updateRoleFilter(role: String?) {
+        _uiState.value = _uiState.value.copy(selectedRole = role)
+        filterAndSortUsers()
+    }
+    
+    fun updateSorting(sortBy: String, sortOrder: String) {
+        _uiState.value = _uiState.value.copy(sortBy = sortBy, sortOrder = sortOrder)
+        filterAndSortUsers()
+    }
+    
+    private fun filterAndSortUsers() {
+        val currentState = _uiState.value
+        var filteredUsers = currentState.users
+        
+        // Apply search filter
+        if (currentState.searchQuery.isNotBlank()) {
+            filteredUsers = filteredUsers.filter { user ->
+                user.displayName.contains(currentState.searchQuery, ignoreCase = true) ||
+                user.username.contains(currentState.searchQuery, ignoreCase = true) ||
+                user.email.contains(currentState.searchQuery, ignoreCase = true) ||
+                user.firstName.contains(currentState.searchQuery, ignoreCase = true) ||
+                user.lastName.contains(currentState.searchQuery, ignoreCase = true)
+            }
+        }
+        
+        // Apply role filter
+        currentState.selectedRole?.let { role ->
+            filteredUsers = filteredUsers.filter { user ->
+                user.roles?.contains(role) == true
+            }
+        }
+        
+        // Apply sorting
+        filteredUsers = when (currentState.sortBy) {
+            "name" -> if (currentState.sortOrder == "asc") {
+                filteredUsers.sortedBy { it.displayName }
+            } else {
+                filteredUsers.sortedByDescending { it.displayName }
+            }
+            "date" -> if (currentState.sortOrder == "asc") {
+                filteredUsers.sortedBy { it.registered }
+            } else {
+                filteredUsers.sortedByDescending { it.registered }
+            }
+            "role" -> if (currentState.sortOrder == "asc") {
+                filteredUsers.sortedBy { it.roles?.firstOrNull() ?: "zzz" }
+            } else {
+                filteredUsers.sortedByDescending { it.roles?.firstOrNull() ?: "" }
+            }
+            else -> filteredUsers
+        }
+        
+        _uiState.value = currentState.copy(filteredUsers = filteredUsers)
+    }
+    
+    private fun updateFilteredUsers() {
+        _uiState.value = _uiState.value.copy(
+            filteredUsers = _uiState.value.users
+        )
+        filterAndSortUsers()
     }
 }
 
 data class UsersUiState(
     val isLoading: Boolean = false,
-    val users: List<UserItem> = emptyList(),
+    val users: List<User> = emptyList(),
+    val filteredUsers: List<User> = emptyList(),
     val error: String? = null,
-    val retryLoading: Set<Int> = emptySet(),
     val deleteLoading: Set<Int> = emptySet(),
-    val actionMessage: String? = null
+    val retryLoading: Set<Int> = emptySet(),
+    val actionMessage: String? = null,
+    val searchQuery: String = "",
+    val selectedRole: String? = null,
+    val sortBy: String = "name", // "name", "date", "role"
+    val sortOrder: String = "asc" // "asc", "desc"
 )

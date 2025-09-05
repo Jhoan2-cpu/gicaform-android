@@ -1,14 +1,17 @@
 package com.example.gica2025.presentation.screens
 
+import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.example.gica2025.data.repository.AuthRepository
 import com.example.gica2025.navigation.BottomNavItem
 import com.example.gica2025.navigation.BottomNavigationBar
 import com.example.gica2025.presentation.components.TopBar
@@ -22,6 +25,8 @@ fun MainScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val navController = rememberNavController()
+    val context = LocalContext.current
+    val authRepository = remember { AuthRepository(context) }
 
     LaunchedEffect(Unit) {
         viewModel.checkLoginStatus()
@@ -46,7 +51,7 @@ fun MainScreen(
             
             composable(BottomNavItem.Profile.route) {
                 ProfileScreen(
-                    user = uiState.currentUser,
+                    authRepository = authRepository,
                     onLogout = {
                         viewModel.logout()
                         onLogout()
@@ -60,6 +65,7 @@ fun MainScreen(
             
             composable(BottomNavItem.Settings.route) {
                 SettingsScreen(
+                    authRepository = authRepository,
                     isDarkTheme = uiState.isDarkTheme,
                     onToggleTheme = { viewModel.toggleTheme() },
                     onLogout = {

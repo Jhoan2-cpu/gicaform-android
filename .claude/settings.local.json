@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Read(/mnt/d/**)",
-      "Read(/mnt/d/**)"
+      "Read(/mnt/d/**)",
+      "Bash(grep:*)",
+      "Read(//mnt/d/**)",
+      "Bash(./gradlew:*)"
     ],
     "deny": [],
     "ask": []

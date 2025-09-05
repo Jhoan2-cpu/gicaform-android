@@ -79,6 +79,22 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     
+    fun logout() {
+        viewModelScope.launch {
+            authRepository.logout()
+                .collect { result ->
+                    result.fold(
+                        onSuccess = { logoutResponse ->
+                            // Logout exitoso - se limpia la sesión automáticamente en el repositorio
+                        },
+                        onFailure = { exception ->
+                            // Incluso si falla el logout en el servidor, se limpia la sesión local
+                        }
+                    )
+                }
+        }
+    }
+    
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }

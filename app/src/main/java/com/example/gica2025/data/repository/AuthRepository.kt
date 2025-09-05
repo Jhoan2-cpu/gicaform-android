@@ -3,9 +3,16 @@ package com.example.gica2025.data.repository
 import android.content.Context
 import android.content.SharedPreferences
 import android.provider.Settings
+import android.util.Log
 import com.example.gica2025.data.model.DeviceInfo
 import com.example.gica2025.data.model.LoginRequest
 import com.example.gica2025.data.model.LoginResponse
+import com.example.gica2025.data.model.LogoutResponse
+import com.example.gica2025.data.model.PasswordChangeRequest
+import com.example.gica2025.data.model.PasswordChangeResponse
+import com.example.gica2025.data.model.ProfileResponse
+import com.example.gica2025.data.model.ProfileUpdateRequest
+import com.example.gica2025.data.model.ProfileUpdateResponse
 import com.example.gica2025.data.model.User
 import com.example.gica2025.data.network.NetworkModule
 import kotlinx.coroutines.flow.Flow
@@ -18,8 +25,13 @@ class AuthRepository(private val context: Context) {
     
     private val authApiService = NetworkModule.authApiService
     
+    companion object {
+        private const val TAG = "AuthRepository"
+    }
+    
     suspend fun login(username: String, password: String): Flow<Result<LoginResponse>> = flow {
         try {
+            Log.d(TAG, "Iniciando login para usuario: $username")
             val deviceId = Settings.Secure.getString(
                 context.contentResolver, 
                 Settings.Secure.ANDROID_ID
@@ -32,6 +44,7 @@ class AuthRepository(private val context: Context) {
             )
             
             val response = authApiService.login(loginRequest)
+            Log.d(TAG, "Respuesta HTTP: ${response.code()} - ${response.message()}")
             
             if (response.isSuccessful) {
                 response.body()?.let { loginResponse ->
@@ -43,7 +56,17 @@ class AuthRepository(private val context: Context) {
                     }
                 } ?: emit(Result.failure(Exception("Respuesta vacía del servidor")))
             } else {
-                emit(Result.failure(Exception("Error ${response.code()}: ${response.message()}")))
+                val errorBody = response.errorBody()?.string()
+                Log.e(TAG, "Error body: $errorBody")
+                val errorMessage = when {
+                    errorBody?.contains("<html>", ignoreCase = true) == true -> 
+                        "El servidor devolvió HTML en lugar de JSON. Verifique la URL del endpoint."
+                    errorBody != null -> 
+                        "Error ${response.code()}: $errorBody"
+                    else -> 
+                        "Error ${response.code()}: ${response.message()}"
+                }
+                emit(Result.failure(Exception(errorMessage)))
             }
         } catch (e: Exception) {
             emit(Result.failure(e))
@@ -53,7 +76,7 @@ class AuthRepository(private val context: Context) {
     private fun saveUserSession(loginResponse: LoginResponse) {
         with(sharedPreferences.edit()) {
             putString("auth_token", loginResponse.data?.token)
-            putString("expires_at", loginResponse.data?.expiresAt)
+            putInt("expires_in", loginResponse.data?.expiresIn ?: 0)
             putString("user_id", loginResponse.data?.user?.id.toString())
             putString("username", loginResponse.data?.user?.username)
             putString("display_name", loginResponse.data?.user?.displayName)
@@ -93,7 +116,137 @@ class AuthRepository(private val context: Context) {
         } else null
     }
     
-    fun logout() {
+    suspend fun logout(): Flow<Result<LogoutResponse>> = flow {
+        try {
+            val token = getAuthToken()
+            if (token != null) {
+                val response = authApiService.logout(token)
+                if (response.isSuccessful) {
+                    response.body()?.let { logoutResponse ->
+                        if (logoutResponse.success) {
+                            clearUserSession()
+                            emit(Result.success(logoutResponse))
+                        } else {
+                            emit(Result.failure(Exception(logoutResponse.message)))
+                        }
+                    } ?: emit(Result.failure(Exception("Respuesta vacía del servidor")))
+                } else {
+                    emit(Result.failure(Exception("Error ${response.code()}: ${response.message()}")))
+                }
+            } else {
+                clearUserSession()
+                emit(Result.success(LogoutResponse(true, "Sesión cerrada localmente")))
+            }
+        } catch (e: Exception) {
+            clearUserSession()
+            emit(Result.failure(e))
+        }
+    }
+    
+    private fun clearUserSession() {
         sharedPreferences.edit().clear().apply()
+    }
+    
+    suspend fun getProfile(): Flow<Result<ProfileResponse>> = flow {
+        try {
+            val token = getAuthToken()
+            if (token != null) {
+                val response = authApiService.getProfile(token)
+                if (response.isSuccessful) {
+                    response.body()?.let { profileResponse ->
+                        if (profileResponse.success) {
+                            emit(Result.success(profileResponse))
+                        } else {
+                            emit(Result.failure(Exception(profileResponse.message ?: "Error desconocido")))
+                        }
+                    } ?: emit(Result.failure(Exception("Respuesta vacía del servidor")))
+                } else {
+                    emit(Result.failure(Exception("Error ${response.code()}: ${response.message()}")))
+                }
+            } else {
+                emit(Result.failure(Exception("Token no disponible")))
+            }
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+    
+    suspend fun updateProfile(profileUpdateRequest: ProfileUpdateRequest): Flow<Result<ProfileUpdateResponse>> = flow {
+        try {
+            val token = getAuthToken()
+            if (token != null) {
+                val response = authApiService.updateProfile(token, profileUpdateRequest)
+                if (response.isSuccessful) {
+                    response.body()?.let { updateResponse ->
+                        if (updateResponse.success) {
+                            emit(Result.success(updateResponse))
+                        } else {
+                            emit(Result.failure(Exception(updateResponse.message)))
+                        }
+                    } ?: emit(Result.failure(Exception("Respuesta vacía del servidor")))
+                } else {
+                    emit(Result.failure(Exception("Error ${response.code()}: ${response.message()}")))
+                }
+            } else {
+                emit(Result.failure(Exception("Token no disponible")))
+            }
+        } catch (e: Exception) {
+            emit(Result.failure(e))
+        }
+    }
+    
+    suspend fun changePassword(currentPassword: String, newPassword: String, confirmPassword: String): Flow<Result<PasswordChangeResponse>> = flow {
+        try {
+            val token = getAuthToken()
+            if (token != null) {
+                // Validaciones locales
+                if (newPassword != confirmPassword) {
+                    emit(Result.failure(Exception("Las contraseñas no coinciden")))
+                    return@flow
+                }
+                
+                if (newPassword.length < 6) {
+                    emit(Result.failure(Exception("La nueva contraseña debe tener al menos 6 caracteres")))
+                    return@flow
+                }
+                
+                val passwordChangeRequest = PasswordChangeRequest(
+                    currentPassword = currentPassword,
+                    newPassword = newPassword,
+                    confirmPassword = confirmPassword
+                )
+                
+                val response = authApiService.changePassword(token, passwordChangeRequest)
+                if (response.isSuccessful) {
+                    response.body()?.let { passwordChangeResponse ->
+                        if (passwordChangeResponse.success) {
+                            // Si los tokens fueron invalidados, limpiar la sesión local
+                            if (passwordChangeResponse.data?.tokensInvalidated == true) {
+                                Log.d("AuthRepository", "Tokens invalidated, clearing local session")
+                                clearUserSession()
+                            }
+                            emit(Result.success(passwordChangeResponse))
+                        } else {
+                            emit(Result.failure(Exception(passwordChangeResponse.message)))
+                        }
+                    } ?: emit(Result.failure(Exception("Respuesta vacía del servidor")))
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e("AuthRepository", "Error changing password: ${response.code()} - $errorBody")
+                    
+                    // Manejo específico del error 404
+                    if (response.code() == 404) {
+                        emit(Result.failure(Exception("El endpoint de cambio de contraseña no está disponible en el servidor. Contacte al administrador.")))
+                    } else {
+                        emit(Result.failure(Exception("Error ${response.code()}: ${errorBody ?: response.message()}")))
+                    }
+                }
+            } else {
+                emit(Result.failure(Exception("Token no disponible")))
+            }
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Exception changing password", e)
+            emit(Result.failure(e))
+        }
     }
 }

@@ -8,10 +8,10 @@
             <InsightsFilterSettings>
               <option name="connection">
                 <ConnectionSetting>
-                  <option name="appId" value="PLACEHOLDER" />
-                  <option name="mobileSdkAppId" value="" />
-                  <option name="projectId" value="" />
-                  <option name="projectNumber" value="" />
+                  <option name="appId" value="com.example.gica2025" />
+                  <option name="mobileSdkAppId" value="1:714103885883:android:2be2aeed747dbb1cf50c1e" />
+                  <option name="projectId" value="gicaform-notifications" />
+                  <option name="projectNumber" value="714103885883" />
                 </ConnectionSetting>
               </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />

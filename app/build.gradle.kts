@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -16,6 +17,14 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        
+        // Configuración del servidor por defecto
+        buildConfigField("String", "BASE_URL", "\"https://solid-plot.localsite.io/\"")
+        buildConfigField("String", "API_PATH", "\"wp-json/gicaform/v1/\"")
+        buildConfigField("String", "FCM_ENDPOINT", "\"wp-content/plugins/GICAACCOUNT/mobile-api-public.php\"")
+        buildConfigField("String", "HTTP_USERNAME", "\"cushion\"")
+        buildConfigField("String", "HTTP_PASSWORD", "\"neighborly\"")
+        buildConfigField("String", "FCM_API_KEY", "\"gica_mobile_2024\"")
     }
 
     buildTypes {
@@ -25,6 +34,38 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+        }
+        debug {
+            // Configuración para desarrollo/testing (servidor actual)
+            buildConfigField("String", "BASE_URL", "\"https://solid-plot.localsite.io/\"")
+            buildConfigField("String", "HTTP_USERNAME", "\"cushion\"")
+            buildConfigField("String", "HTTP_PASSWORD", "\"neighborly\"")
+        }
+    }
+    
+    // Build variants para diferentes servidores
+    flavorDimensions += "server"
+    productFlavors {
+        create("production") {
+            dimension = "server"
+            // Configuración para servidor de producción
+            buildConfigField("String", "BASE_URL", "\"https://solid-plot.localsite.io/\"")
+            buildConfigField("String", "HTTP_USERNAME", "\"cushion\"")
+            buildConfigField("String", "HTTP_PASSWORD", "\"neighborly\"")
+        }
+        create("staging") {
+            dimension = "server"
+            // Configuración para servidor de staging
+            buildConfigField("String", "BASE_URL", "\"https://solid-plot.localsite.io/\"")
+            buildConfigField("String", "HTTP_USERNAME", "\"cushion\"")
+            buildConfigField("String", "HTTP_PASSWORD", "\"neighborly\"")
+        }
+        create("development") {
+            dimension = "server"
+            // Configuración actual (servidor actual)
+            buildConfigField("String", "BASE_URL", "\"https://solid-plot.localsite.io/\"")
+            buildConfigField("String", "HTTP_USERNAME", "\"cushion\"")
+            buildConfigField("String", "HTTP_PASSWORD", "\"neighborly\"")
         }
     }
     compileOptions {
@@ -36,6 +77,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     packaging {
         resources {
@@ -45,6 +87,12 @@ android {
 }
 
 dependencies {
+
+    // Firebase BOM para manejar versiones automáticamente
+    implementation(platform("com.google.firebase:firebase-bom:33.1.2"))
+    implementation("com.google.firebase:firebase-messaging")
+    implementation("com.google.firebase:firebase-analytics")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.lifecycle.runtime.ktx)
@@ -80,6 +128,9 @@ dependencies {
     
     // Animations
     implementation(libs.lottie.compose)
+    
+    // Image Loading
+    implementation("io.coil-kt:coil-compose:2.7.0")
     
     // Testing
     testImplementation(libs.junit)

@@ -9,6 +9,8 @@ import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Security
+import com.example.gica2025.data.repository.AuthRepository
+import com.example.gica2025.presentation.components.ChangePasswordDialog
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,12 +27,15 @@ import com.example.gica2025.ui.theme.GradientStart
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
+    authRepository: AuthRepository,
     isDarkTheme: Boolean,
     onToggleTheme: () -> Unit,
     onLogout: () -> Unit
 ) {
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showAboutDialog by remember { mutableStateOf(false) }
+    var showChangePasswordDialog by remember { mutableStateOf(false) }
+    var passwordChangeSuccess by remember { mutableStateOf(false) }
     
     val gradientBrush = Brush.linearGradient(
         colors = listOf(
@@ -126,7 +131,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Security,
                     title = "Cambiar contraseña",
                     subtitle = "Actualizar credenciales de acceso",
-                    onClick = { /* Funcionalidad futura */ }
+                    onClick = { showChangePasswordDialog = true }
                 )
                 
                 Divider(modifier = Modifier.padding(vertical = 12.dp))
@@ -239,6 +244,49 @@ fun SettingsScreen(
                 }
             }
         )
+    }
+
+    // Diálogo de cambio de contraseña
+    if (showChangePasswordDialog) {
+        ChangePasswordDialog(
+            authRepository = authRepository,
+            onDismiss = { showChangePasswordDialog = false },
+            onSuccess = { message ->
+                showChangePasswordDialog = false
+                if (message.contains("iniciar sesión nuevamente", ignoreCase = true)) {
+                    // Si la respuesta indica que debe iniciar sesión nuevamente, hacer logout
+                    onLogout()
+                } else {
+                    passwordChangeSuccess = true
+                }
+            }
+        )
+    }
+
+    // Snackbar de éxito para cambio de contraseña
+    if (passwordChangeSuccess) {
+        LaunchedEffect(passwordChangeSuccess) {
+            kotlinx.coroutines.delay(3000)
+            passwordChangeSuccess = false
+        }
+        
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.BottomCenter
+        ) {
+            Snackbar(
+                modifier = Modifier.padding(16.dp),
+                action = {
+                    TextButton(onClick = { passwordChangeSuccess = false }) {
+                        Text("OK")
+                    }
+                },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Text("✅ Contraseña cambiada exitosamente")
+            }
+        }
     }
 }
 
