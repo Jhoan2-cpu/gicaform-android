@@ -1,0 +1,3 @@
+link live: light-theory.localsite.io
+credenciales: username: century
+password: regular

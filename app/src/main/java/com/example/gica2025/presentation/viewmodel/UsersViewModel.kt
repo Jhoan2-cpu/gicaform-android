@@ -29,8 +29,10 @@ class UsersViewModel : ViewModel() {
                             isLoading = false,
                             users = users,
                             filteredUsers = users,
-                            error = null
+                            error = null,
+                            totalUsers = users.size
                         )
+                        filterAndSortUsers()
                     } else {
                         _uiState.value = _uiState.value.copy(
                             isLoading = false,
@@ -97,11 +99,15 @@ class UsersViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     val deleteResponse = response.body()
                     if (deleteResponse?.success == true) {
+                        // Remove user from local state and recalculate pagination
+                        val updatedUsers = _uiState.value.users.filter { it.id != user.id }
                         _uiState.value = _uiState.value.copy(
                             deleteLoading = _uiState.value.deleteLoading - user.id,
-                            actionMessage = deleteResponse?.message ?: "Usuario eliminado exitosamente"
+                            actionMessage = deleteResponse?.message ?: "Usuario eliminado exitosamente",
+                            users = updatedUsers,
+                            totalUsers = updatedUsers.size
                         )
-                        loadUsers(token)
+                        filterAndSortUsers()
                     } else {
                         _uiState.value = _uiState.value.copy(
                             deleteLoading = _uiState.value.deleteLoading - user.id,
@@ -129,37 +135,11 @@ class UsersViewModel : ViewModel() {
         loadUsers(token)
     }
     
-    fun retryUser(userId: Int, token: String) {
-        viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(
-                retryLoading = _uiState.value.retryLoading + userId
-            )
-            
-            try {
-                // Simulamos la llamada al endpoint getUserById
-                // Por ahora solo mostramos un mensaje informativo
-                kotlinx.coroutines.delay(1000)
-                _uiState.value = _uiState.value.copy(
-                    retryLoading = _uiState.value.retryLoading - userId,
-                    actionMessage = "Ver perfil completo - Funcionalidad próximamente disponible"
-                )
-            } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    retryLoading = _uiState.value.retryLoading - userId,
-                    actionMessage = "Error al cargar perfil: ${e.message}"
-                )
-            }
-        }
-    }
     
     fun clearActionMessage() {
         _uiState.value = _uiState.value.copy(actionMessage = null)
     }
     
-    fun updateSearchQuery(query: String) {
-        _uiState.value = _uiState.value.copy(searchQuery = query)
-        filterAndSortUsers()
-    }
     
     fun updateRoleFilter(role: String?) {
         _uiState.value = _uiState.value.copy(selectedRole = role)
@@ -174,17 +154,6 @@ class UsersViewModel : ViewModel() {
     private fun filterAndSortUsers() {
         val currentState = _uiState.value
         var filteredUsers = currentState.users
-        
-        // Apply search filter
-        if (currentState.searchQuery.isNotBlank()) {
-            filteredUsers = filteredUsers.filter { user ->
-                user.displayName.contains(currentState.searchQuery, ignoreCase = true) ||
-                user.username.contains(currentState.searchQuery, ignoreCase = true) ||
-                user.email.contains(currentState.searchQuery, ignoreCase = true) ||
-                user.firstName.contains(currentState.searchQuery, ignoreCase = true) ||
-                user.lastName.contains(currentState.searchQuery, ignoreCase = true)
-            }
-        }
         
         // Apply role filter
         currentState.selectedRole?.let { role ->
@@ -213,14 +182,9 @@ class UsersViewModel : ViewModel() {
             else -> filteredUsers
         }
         
-        _uiState.value = currentState.copy(filteredUsers = filteredUsers)
-    }
-    
-    private fun updateFilteredUsers() {
-        _uiState.value = _uiState.value.copy(
-            filteredUsers = _uiState.value.users
+        _uiState.value = currentState.copy(
+            filteredUsers = filteredUsers
         )
-        filterAndSortUsers()
     }
 }
 
@@ -230,10 +194,9 @@ data class UsersUiState(
     val filteredUsers: List<User> = emptyList(),
     val error: String? = null,
     val deleteLoading: Set<Int> = emptySet(),
-    val retryLoading: Set<Int> = emptySet(),
     val actionMessage: String? = null,
-    val searchQuery: String = "",
     val selectedRole: String? = null,
     val sortBy: String = "name", // "name", "date", "role"
-    val sortOrder: String = "asc" // "asc", "desc"
+    val sortOrder: String = "asc", // "asc", "desc"
+    val totalUsers: Int = 0
 )

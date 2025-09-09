@@ -5,7 +5,8 @@
       "Read(/mnt/d/**)",
       "Bash(grep:*)",
       "Read(//mnt/d/**)",
-      "Bash(./gradlew:*)"
+      "Bash(./gradlew:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

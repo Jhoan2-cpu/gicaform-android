@@ -19,11 +19,12 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         // Configuración del servidor por defecto
-        buildConfigField("String", "BASE_URL", "\"https://solid-plot.localsite.io/\"")
+        buildConfigField("String", "BASE_URL", "\"https://symptomatic-rain.localsite.io/\"")
         buildConfigField("String", "API_PATH", "\"wp-json/gicaform/v1/\"")
         buildConfigField("String", "FCM_ENDPOINT", "\"wp-content/plugins/GICAACCOUNT/mobile-api-public.php\"")
-        buildConfigField("String", "HTTP_USERNAME", "\"cushion\"")
-        buildConfigField("String", "HTTP_PASSWORD", "\"neighborly\"")
+        // Credenciales HTTP básicas para symptomatic-rain.localsite.io
+        buildConfigField("String", "HTTP_USERNAME", "\"python\"")
+        buildConfigField("String", "HTTP_PASSWORD", "\"astonishing\"")
         buildConfigField("String", "FCM_API_KEY", "\"gica_mobile_2024\"")
     }
 
@@ -36,36 +37,41 @@ android {
             )
         }
         debug {
-            // Configuración para desarrollo/testing (servidor actual)
-            buildConfigField("String", "BASE_URL", "\"https://solid-plot.localsite.io/\"")
-            buildConfigField("String", "HTTP_USERNAME", "\"cushion\"")
-            buildConfigField("String", "HTTP_PASSWORD", "\"neighborly\"")
+            // Configuración para desarrollo/testing (servidor light-theory)
+            buildConfigField("String", "BASE_URL", "\"https://symptomatic-rain.localsite.io/\"")
+            // Credenciales HTTP básicas para symptomatic-rain.localsite.io
+            buildConfigField("String", "HTTP_USERNAME", "\"python\"")
+            buildConfigField("String", "HTTP_PASSWORD", "\"astonishing\"")
         }
     }
-    
+
     // Build variants para diferentes servidores
+    // Cada flavor puede tener credenciales diferentes o dejarlas vacías
+    // Si HTTP_USERNAME o HTTP_PASSWORD están vacías, NetworkModule no agregará autenticación HTTP básica
     flavorDimensions += "server"
     productFlavors {
         create("production") {
             dimension = "server"
             // Configuración para servidor de producción
-            buildConfigField("String", "BASE_URL", "\"https://solid-plot.localsite.io/\"")
-            buildConfigField("String", "HTTP_USERNAME", "\"cushion\"")
-            buildConfigField("String", "HTTP_PASSWORD", "\"neighborly\"")
+            buildConfigField("String", "BASE_URL", "\"https://gicaingenieros.com/website/\"")
+            // Dejar vacías las credenciales si el servidor no requiere autenticación HTTP básica
+            buildConfigField("String", "HTTP_USERNAME", "\"\"")
+            buildConfigField("String", "HTTP_PASSWORD", "\"\"")
         }
         create("staging") {
             dimension = "server"
             // Configuración para servidor de staging
-            buildConfigField("String", "BASE_URL", "\"https://solid-plot.localsite.io/\"")
-            buildConfigField("String", "HTTP_USERNAME", "\"cushion\"")
-            buildConfigField("String", "HTTP_PASSWORD", "\"neighborly\"")
+            buildConfigField("String", "BASE_URL", "\"https://gicaingenieros.com/website/\"")
+            // Dejar vacías las credenciales si el servidor no requiere autenticación HTTP básica
+            buildConfigField("String", "HTTP_USERNAME", "\"\"")
+            buildConfigField("String", "HTTP_PASSWORD", "\"\"")
         }
         create("development") {
             dimension = "server"
-            // Configuración actual (servidor actual)
-            buildConfigField("String", "BASE_URL", "\"https://solid-plot.localsite.io/\"")
-            buildConfigField("String", "HTTP_USERNAME", "\"cushion\"")
-            buildConfigField("String", "HTTP_PASSWORD", "\"neighborly\"")
+            // Configuración para desarrollo (symptomatic-rain.localsite.io)
+            buildConfigField("String", "BASE_URL", "\"https://symptomatic-rain.localsite.io/\"")
+            buildConfigField("String", "HTTP_USERNAME", "\"python\"")
+            buildConfigField("String", "HTTP_PASSWORD", "\"astonishing\"")
         }
     }
     compileOptions {

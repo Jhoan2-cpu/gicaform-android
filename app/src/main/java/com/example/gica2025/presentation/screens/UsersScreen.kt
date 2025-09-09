@@ -3,21 +3,20 @@ package com.example.gica2025.presentation.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AdminPanelSettings
-import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,9 +26,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -50,7 +47,7 @@ fun UsersScreen(
 ) {
     val viewModel: UsersViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsState()
-    val keyboardController = LocalSoftwareKeyboardController.current
+    var selectedUserProfile by remember { mutableStateOf<User?>(null) }
     
     val gradientBrush = Brush.linearGradient(
         colors = listOf(
@@ -64,6 +61,7 @@ fun UsersScreen(
             viewModel.loadUsers(it) 
         }
     }
+    
     
     uiState.actionMessage?.let { message ->
         LaunchedEffect(message) {
@@ -153,7 +151,7 @@ fun UsersScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
+                        .padding(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -161,18 +159,18 @@ fun UsersScreen(
                         imageVector = Icons.Default.Groups,
                         contentDescription = "Usuarios totales",
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${uiState.filteredUsers.size}",
-                        fontSize = 28.sp,
+                        text = "${uiState.totalUsers}",
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
                     Text(
                         text = "Usuarios Totales",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center
                     )
@@ -190,7 +188,7 @@ fun UsersScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(20.dp),
+                        .padding(12.dp),
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.Center
                 ) {
@@ -198,18 +196,18 @@ fun UsersScreen(
                         imageVector = Icons.Default.AdminPanelSettings,
                         contentDescription = "Administradores",
                         tint = MaterialTheme.colorScheme.secondary,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(20.dp)
                     )
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${uiState.filteredUsers.count { it.roles?.contains("administrator") == true }}",
-                        fontSize = 28.sp,
+                        text = "${uiState.users.count { it.roles?.contains("administrator") == true }}",
+                        fontSize = 22.sp,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     Text(
                         text = "Administradores",
-                        fontSize = 12.sp,
+                        fontSize = 11.sp,
                         color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.8f),
                         textAlign = TextAlign.Center
                     )
@@ -218,37 +216,6 @@ fun UsersScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        // Functional search bar
-        OutlinedTextField(
-            value = uiState.searchQuery,
-            onValueChange = { viewModel.updateSearchQuery(it) },
-            label = { Text("Buscar usuarios...") },
-            leadingIcon = {
-                Icon(
-                    imageVector = Icons.Default.Search,
-                    contentDescription = "Buscar"
-                )
-            },
-            trailingIcon = {
-                if (uiState.searchQuery.isNotEmpty()) {
-                    IconButton(onClick = { viewModel.updateSearchQuery("") }) {
-                        Icon(
-                            imageVector = Icons.Default.Clear,
-                            contentDescription = "Limpiar búsqueda"
-                        )
-                    }
-                }
-            },
-            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(
-                onSearch = { keyboardController?.hide() }
-            ),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp)
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
 
         // Filter and sort controls
         Row(
@@ -441,35 +408,6 @@ fun UsersScreen(
                 }
             }
             
-            uiState.filteredUsers.isEmpty() && uiState.searchQuery.isNotEmpty() -> {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(16.dp)
-                ) {
-                    Column(
-                        modifier = Modifier.padding(32.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Sin resultados",
-                            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "No se encontraron usuarios",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
-                        )
-                        Text(
-                            text = "Intenta con términos de búsqueda diferentes",
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                }
-            }
             
             uiState.users.isEmpty() -> {
                 Card(
@@ -509,10 +447,9 @@ fun UsersScreen(
                     items(uiState.filteredUsers) { user ->
                         UserCard(
                             user = user,
-                            isRetryLoading = uiState.retryLoading.contains(user.id),
                             isDeleteLoading = uiState.deleteLoading.contains(user.id),
                             onRetryClick = { 
-                                token?.let { viewModel.retryUser(user.id, it) }
+                                selectedUserProfile = user
                             },
                             onDeleteClick = {
                                 token?.let { viewModel.deleteUser(user, it) }
@@ -523,12 +460,19 @@ fun UsersScreen(
             }
         }
     }
+    
+    // User Profile Dialog
+    selectedUserProfile?.let { user ->
+        UserProfileDialog(
+            user = user,
+            onDismiss = { selectedUserProfile = null }
+        )
+    }
 }
 
 @Composable
 private fun UserCard(
     user: User,
-    isRetryLoading: Boolean = false,
     isDeleteLoading: Boolean = false,
     onRetryClick: () -> Unit = {},
     onDeleteClick: () -> Unit = {}
@@ -671,26 +615,18 @@ private fun UserCard(
             ) {
                 // Botón Ver Perfil Completo
                 OutlinedButton(
-                    onClick = onRetryClick, // Reutilizamos esta función para ver perfil
-                    enabled = !isRetryLoading && !isDeleteLoading,
+                    onClick = onRetryClick,
+                    enabled = !isDeleteLoading,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.outlinedButtonColors(
                         contentColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
-                    if (isRetryLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Ver Perfil",
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Ver Perfil",
+                        modifier = Modifier.size(16.dp)
+                    )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Ver Perfil", fontSize = 12.sp)
                 }
@@ -699,7 +635,7 @@ private fun UserCard(
                 if (canDelete) {
                     Button(
                         onClick = onDeleteClick,
-                        enabled = !isRetryLoading && !isDeleteLoading,
+                        enabled = !isDeleteLoading,
                         modifier = Modifier.weight(1f),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.errorContainer
@@ -745,5 +681,200 @@ private fun UserCard(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun UserProfileDialog(
+    user: User,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Perfil de usuario",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Perfil de Usuario",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+        },
+        text = {
+            Column(
+                modifier = Modifier.verticalScroll(rememberScrollState())
+            ) {
+                // Basic Information Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Información Básica",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        ProfileInfoRow("Nombre de Usuario", user.username)
+                        ProfileInfoRow("Nombre para Mostrar", user.displayName.ifEmpty { "No especificado" })
+                        ProfileInfoRow("Nombre", user.firstName.ifEmpty { "No especificado" })
+                        ProfileInfoRow("Apellido", user.lastName.ifEmpty { "No especificado" })
+                        ProfileInfoRow("Email", user.email)
+                        ProfileInfoRow("ID", user.id.toString())
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Roles Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Roles y Permisos",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.secondary
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        user.roles?.let { rolesList ->
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(rolesList) { role ->
+                                    AssistChip(
+                                        onClick = { },
+                                        label = { 
+                                            Text(
+                                                text = when(role) {
+                                                    "administrator" -> "Administrador"
+                                                    "subscriber" -> "Suscriptor"
+                                                    else -> role.replaceFirstChar { it.uppercase() }
+                                                },
+                                                fontSize = 12.sp
+                                            )
+                                        },
+                                        colors = AssistChipDefaults.assistChipColors(
+                                            containerColor = if (role == "administrator") 
+                                                MaterialTheme.colorScheme.primaryContainer
+                                            else 
+                                                MaterialTheme.colorScheme.secondaryContainer
+                                        )
+                                    )
+                                }
+                            }
+                        } ?: Text(
+                            text = "Sin roles asignados",
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            fontSize = 14.sp
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // Registration Info Card
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Información de Registro",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.tertiary
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        
+                        ProfileInfoRow("Fecha de Registro", user.registered?.take(19)?.replace("T", " ") ?: "No disponible")
+                        
+                        user.externalRegistration?.let { external ->
+                            Spacer(modifier = Modifier.height(8.dp))
+                            HorizontalDivider()
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            Text(
+                                text = "Registro Externo",
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.tertiary
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            
+                            ProfileInfoRow("Tipo de Documento", external.documentType.uppercase())
+                            ProfileInfoRow("Número de Documento", external.documentNumber)
+                            ProfileInfoRow("Teléfono", external.phone)
+                            ProfileInfoRow("Estado", external.statusLabel)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cerrar")
+            }
+        },
+        modifier = Modifier.fillMaxWidth(0.95f)
+    )
+}
+
+@Composable
+private fun ProfileInfoRow(
+    label: String,
+    value: String
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = "$label:",
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            fontSize = 14.sp,
+            modifier = Modifier.weight(1f)
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        Text(
+            text = value,
+            color = MaterialTheme.colorScheme.onSurface,
+            fontSize = 14.sp,
+            modifier = Modifier.weight(1.5f),
+            textAlign = TextAlign.End
+        )
     }
 }
